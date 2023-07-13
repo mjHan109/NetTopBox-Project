@@ -26,6 +26,10 @@ def config_reading():
 
 # csv 파일 es로 인덱싱
 def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elastic_user):
+    total_files = 0  # 총 파일 개수
+    success_files = 0  # 인덱싱에 성공한 파일 개수
+    failure_files = 0  # 인덱싱에 실패한 파일 개수
+
     try:
         es = Elasticsearch(
             [f"http://{elastic_host}:{elastic_port}"],
@@ -48,10 +52,13 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
     else:
         for file_name in os.listdir(csv_path):
             if file_name.endswith('.csv'):
+                    total_files += 1
+
                     file_path = os.path.join(csv_path, file_name)
 
                     file_extension = os.path.splitext(file_name)[1]
                     file_name = os.path.splitext(file_name)[0]
+                    
                     if "(C_)" in file_name:
                         file_name = file_name.rsplit("(", 1)[0].strip()
                     if "08" in file_name:
@@ -88,6 +95,7 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
         df = pd.DataFrame(output_data)
 
         index_name = "result_analysis_info"
+        # index_name = f"result_analysis_info_{file_name.lower()}"
 
         # 인덱싱이 존재하면 오류 출력 및 인덱스 삭제
         if es.indices.exists(index=index_name):
@@ -105,15 +113,24 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
         for idx, action in enumerate(actions, start=1):
             progress = idx / len(actions) * 100
             print(f"인덱싱 진행 : {round(progress)}%\n")
-
+            # 개별 도큐먼트에 대한 인덱싱 작업 수행
         
+        response = es.index(index=index_name, body=action["_source"])
+
+
+        # 인덱싱 성공 여부 확인 및 카운트
+        if response["result"] == "created":
+            success_files += 1
+        else:
+            failure_files += 1
+
         # bulk 인덱싱
         bulk(es, actions)
 
         print(f"총 {len(actions)} 건 중 {len(actions)} 인덱싱 완료\n")
         print("인덱싱이 완료되었습니다.")
     
-
+    return total_files, success_files, failure_files
     
 def main():
     start_time = time.time()
@@ -125,9 +142,12 @@ def main():
     elastic_port = json_data['elastic_port']
     elastic_user = json_data['elastic_username']
 
-    indexing_csv(root_path, sub_path, csv_export, elastic_host, elastic_port, elastic_user)
+    total_files, success_files, failure_files = indexing_csv(root_path, sub_path, csv_export, elastic_host, elastic_port, elastic_user)
     end_time = time.time()
 
-    print("업로드 걸린 시간(초): %.2f seconds" % (end_time - start_time), "\n")
+    total_time = end_time - start_time
+
+    print("업로드 시간(초): %.2f(s)" % total_time, f"/ 총 {total_files} 개 파일 중 {total_files-failure_files} 개 파일 성공, {failure_files} 개 파일 실패")
+
 if __name__ == "__main__":
     main()
