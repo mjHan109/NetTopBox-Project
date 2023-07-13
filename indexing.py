@@ -99,7 +99,7 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
 
         # 인덱싱이 존재하면 오류 출력 및 인덱스 삭제
         if es.indices.exists(index=index_name):
-            print("Index already exists. Deleting the existing index...\n")
+            print("인덱스가 이미 존재합니다. \n 기존 인덱스를 제거합니다...\n")
             es.indices.delete(index=index_name)
 
         actions = [
