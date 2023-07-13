@@ -10,11 +10,10 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
 
+# config.json에서 데이터 가져오기
 def config_reading():
     current_directory = os.getcwd()
-    # print(current_directory)
     config_file = os.path.join(current_directory, 'config.json')
-    # print(config_file)
     if os.path.isfile(config_file):
         with open(config_file, 'r', encoding='utf-8') as file:
             json_data = json.load(file)
@@ -25,7 +24,7 @@ def config_reading():
         return None
     
 
-
+# csv 파일 es로 인덱싱
 def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elastic_user):
     try:
         es = Elasticsearch(
@@ -43,6 +42,7 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
     output_data = []
     result_file_path = os.path.join(root_path, "indexing_result.txt")
 
+    # config.json에 지정한 경로에 csv_path가 없으면 오류 출력
     if not os.path.exists(csv_path):
         print("경로가 존재하지 않습니다. 사전 분석을 먼저 진행 해주세요.\n")
     else:
@@ -70,6 +70,7 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
                         file_contents = re.sub(r'\r', '\\r', file_contents)
                         file_contents = re.sub(r'\n', '\\n', file_contents)
                     
+                    # 인덱싱 할 도큐먼트
                     data = {
                         '확장자': file_extension,
                         '파일명': file_name,
@@ -88,6 +89,7 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
 
         index_name = "result_analysis_info"
 
+        # 인덱싱이 존재하면 오류 출력 및 인덱스 삭제
         if es.indices.exists(index=index_name):
             print("Index already exists. Deleting the existing index...\n")
             es.indices.delete(index=index_name)
@@ -105,6 +107,7 @@ def indexing_csv(root_path, sub_path, csv_path, elastic_host, elastic_port, elas
             print(f"인덱싱 진행 : {round(progress)}%\n")
 
         
+        # bulk 인덱싱
         bulk(es, actions)
 
         print(f"총 {len(actions)} 건 중 {len(actions)} 인덱싱 완료\n")
