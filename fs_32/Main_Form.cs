@@ -1001,6 +1001,7 @@ namespace fs_32
                 }
 
                 // 20230711 한민정 추가 인덱싱 버튼 관련
+                // 메인 화면에 "인덱싱" 메뉴 클릭 시 진행
                 if (_p.Equals("인덱싱"))
                 {
                     if (chk_foot_cancel)
@@ -4950,6 +4951,7 @@ namespace fs_32
         }
 
         // 20230627 한민정 추가
+        // OnTimerTick 메서드를 통해 주기적으로 파일 내용을 업데이트하고, 변경된 내용에 따라 UI를 갱신
         private void UpdateFromFile()
         {
             string filePath = Application.StartupPath + @"\FootprintingStandalone\Footprinting\progress.txt";
@@ -5070,7 +5072,7 @@ namespace fs_32
 
 
         // 20230712 한민정 추가
-        
+        // python으로 만든 인덱싱 실행 프로그램 실행
         private void indexing_start()
         {
             watcher = new FileSystemWatcher();
@@ -5188,13 +5190,6 @@ namespace fs_32
 
         }
 
-        // 20230712 한민정 추가
-        private void changed3(object source, FileSystemEventArgs e)
-        {
-
-            readline_new3(e.FullPath);
-
-        }
 
         Dictionary<string, string> _ims = new Dictionary<string, string>();
 
@@ -5302,36 +5297,6 @@ namespace fs_32
 
 
         }
-        // 20230712 한민정 추가
-        private void readline_new3(string fname)
-        {
-            Console.WriteLine("--------변경----------");
-
-            if (fname.IndexOf("indexing_result.txt") > -1)
-            {
-                var list = new List<string>();
-                var rd = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                string line;
-
-                using (var streamReader = new StreamReader(rd, System.Text.Encoding.Unicode))
-                {
-                    while ((line = streamReader.ReadLine()) != null)
-                    {
-                        if (!chk_data(line))
-                        {
-                            Indexing_State(line.Substring(19, line.Length - 19));
-
-                            if (line.IndexOf("Indexing document 26 of 26") > -1)
-                            {
-                                watcher.Created -= new FileSystemEventHandler(changed3);
-                                watcher = null;
-                                show_indexing();
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
 
         //픗프린팅 진행상태
@@ -5356,23 +5321,6 @@ namespace fs_32
 
 
         //////////////////////////////////////////////////// Foot printing 종료 ////////////////////////////////
-
-        // 20230711 한민정 추가 인덱싱 진행상태
-        public delegate void setIndexing_State(string _p);
-        private void Indexing_State(string _p)
-        {
-            if (Process_State.InvokeRequired)
-            {
-                setIndexing_State dr = new setIndexing_State(Indexing_State);
-                this.Invoke(dr, new object[] { _p });
-            }
-            else
-            {
-                Index_state.Text = "인덱싱:" + _p;
-
-            }
-
-        }
 
         public void send_Message(string msg)
         {
